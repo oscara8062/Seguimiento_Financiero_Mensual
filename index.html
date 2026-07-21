@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programa de Finanzas Personales</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#475569',
+                        success: '#16a34a',
+                        danger: '#dc2626',
+                        warning: '#eab308'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- SheetJS (Excel) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Hoja de estilos externa -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 h-screen overflow-hidden flex selection:bg-primary selection:text-white">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full z-20 transition-transform duration-300 absolute md:relative -translate-x-full md:translate-x-0" id="sidebar">
+        <div class="p-6 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-primary flex items-center gap-2">
+                <i class="fa-solid fa-wallet"></i> FinaTrack
+            </h1>
+            <button class="md:hidden text-gray-500 hover:text-gray-700" id="close-sidebar">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <nav class="flex-1 px-4 space-y-1 overflow-y-auto">
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-primary bg-blue-50 dark:bg-blue-900/20" data-target="dashboard">
+                <i class="fa-solid fa-chart-pie w-5"></i> Panel Principal
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="movements">
+                <i class="fa-solid fa-money-bill-transfer w-5"></i> Movimientos
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="debts">
+                <i class="fa-solid fa-hand-holding-dollar w-5"></i> Deudas
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="budgets">
+                <i class="fa-solid fa-scale-balanced w-5"></i> Presupuestos
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="goals">
+                <i class="fa-solid fa-bullseye w-5"></i> Objetivos
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="stats">
+                <i class="fa-solid fa-chart-line w-5"></i> Estadísticas
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="calendar">
+                <i class="fa-regular fa-calendar-days w-5"></i> Calendario
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="reports">
+                <i class="fa-solid fa-file-invoice w-5"></i> Reportes & IA
+            </button>
+            <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50" data-target="settings">
+                <i class="fa-solid fa-gear w-5"></i> Configuración
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between text-sm">
+                <span id="sync-status" class="text-gray-500"><i class="fa-solid fa-cloud text-xs mr-1"></i> Sincronizando...</span>
+                <button id="theme-toggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+                </button>
+            </div>
+            <div class="text-[10px] text-gray-400 text-center mt-4 border-t border-gray-200 dark:border-gray-700 pt-2 leading-tight">
+                Creado por <strong>Oscar Augusto Ortiz Carvajal</strong><br>
+                Estudiante de Ingeniería de Sistemas UdeCataliña
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden w-full relative">
+        
+        <!-- Mobile Header -->
+        <header class="md:hidden flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <h1 class="text-xl font-bold text-primary flex items-center gap-2">
+                <i class="fa-solid fa-wallet"></i> FinaTrack
+            </h1>
+            <button id="open-sidebar" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </header>
+
+        <!-- Loader -->
+        <div id="global-loader" class="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-4 font-medium text-gray-600 dark:text-gray-400">Cargando tu información financiera...</p>
+        </div>
+
+        <!-- Red de seguridad: si app.js no logra ejecutarse (ej. sin conexión a internet
+             para cargar dependencias externas), esto evita que el loader quede visible
+             para siempre y avisa al usuario. -->
+        <script>
+            setTimeout(() => {
+                const loader = document.getElementById('global-loader');
+                if (loader && !loader.classList.contains('hidden')) {
+                    loader.querySelector('p').textContent = 'Hubo un problema cargando la aplicación. Verifica tu conexión y recarga la página.';
+                    loader.querySelector('div').classList.add('hidden');
+                }
+            }, 8000);
+        </script>
+
+        <!-- Views Container -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8" id="views-container">
+            
+            <!-- VIEW: DASHBOARD -->
+            <section id="view-dashboard" class="view-section fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold">Seguimiento Financiero Mensual</h2>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Visión general de tu estado actual</p>
+                    </div>
+                    <button class="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2" onclick="app.showModal('modal-movement')">
+                        <i class="fa-solid fa-plus"></i> Nuevo Movimiento
+                    </button>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Saldo -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">Saldo Actual</p>
+                        <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-2" id="dash-balance">$0</h3>
+                        <p class="text-xs text-gray-500" id="dash-balance-subtitle">Dinero disponible</p>
+                    </div>
+                    <!-- Ingresos -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">Ingresos (Mes)</p>
+                                <h3 class="text-2xl font-bold text-success mb-2" id="dash-income">$0</h3>
+                            </div>
+                            <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl text-success"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                        </div>
+                    </div>
+                    <!-- Gastos -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">Gastos (Mes)</p>
+                                <h3 class="text-2xl font-bold text-danger mb-2" id="dash-expense">$0</h3>
+                            </div>
+                            <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-xl text-danger"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                        </div>
+                    </div>
+                    <!-- Deudas -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">Total Deudas</p>
+                                <h3 class="text-2xl font-bold text-warning mb-2" id="dash-debt">$0</h3>
+                            </div>
+                            <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl text-warning"><i class="fa-solid fa-building-columns"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Presupuesto Consumido -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2">
+                        <h3 class="text-lg font-bold mb-4">Estado del Presupuesto (Mes Actual)</h3>
+                        <div id="dash-budget-container" class="space-y-4">
+                            <!-- Budgets will be rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Alertas y Próximos Pagos -->
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h3 class="text-lg font-bold mb-4">Próximos Pagos</h3>
+                        <ul id="dash-next-payments" class="space-y-3">
+                            <!-- Payments here -->
+                        </ul>
+                        <h3 class="text-lg font-bold mt-6 mb-4">Ahorro Acumulado</h3>
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-primary flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-piggy-bank"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold" id="dash-savings">$0</p>
+                                <p class="text-sm text-gray-500">En objetivos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: MOVEMENTS -->
+            <section id="view-movements" class="view-section hidden fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold">Registro de Movimientos</h2>
+                    <button class="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all" onclick="app.showModal('modal-movement')">
+                        <i class="fa-solid fa-plus mr-2"></i> Registrar
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="relative md:col-span-2">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="filter-search" placeholder="Buscar por descripción, palabra clave..." class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none transition-all">
+                    </div>
+                    <select id="filter-type" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">
+                        <option value="">Todos los tipos</option>
+                        <option value="ingreso">Ingresos</option>
+                        <option value="gasto">Gastos</option>
+                    </select>
+                    <input type="month" id="filter-month" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">
+                </div>
+
+                <!-- Table -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700/50 dark:text-gray-300">
+                                <tr>
+                                    <th class="px-6 py-4">Fecha</th>
+                                    <th class="px-6 py-4">Tipo</th>
+                                    <th class="px-6 py-4">Categoría</th>
+                                    <th class="px-6 py-4">Descripción</th>
+                                    <th class="px-6 py-4">Medio de Pago</th>
+                                    <th class="px-6 py-4 text-right">Valor</th>
+                                    <th class="px-6 py-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="movements-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Data injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: DEBTS -->
+            <section id="view-debts" class="view-section hidden fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold">Control de Deudas</h2>
+                    <button class="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all" onclick="app.showModal('modal-debt')">
+                        <i class="fa-solid fa-plus mr-2"></i> Nueva Deuda
+                    </button>
+                </div>
+                <div id="debts-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Debts cards injected via JS -->
+                </div>
+            </section>
+
+            <!-- VIEW: BUDGETS -->
+            <section id="view-budgets" class="view-section hidden fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold">Presupuesto Mensual</h2>
+                    <button class="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all" onclick="app.showModal('modal-budget')">
+                        <i class="fa-solid fa-plus mr-2"></i> Configurar Presupuesto
+                    </button>
+                </div>
+                <div id="budgets-full-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Budgets injected via JS -->
+                </div>
+            </section>
+
+            <!-- VIEW: STATS -->
+            <section id="view-stats" class="view-section hidden fade-in">
+                <h2 class="text-2xl font-bold mb-6">Estadísticas y Gráficos</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h3 class="text-center font-medium mb-4">Gastos por Categoría</h3>
+                        <canvas id="chartExpenseCategory"></canvas>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h3 class="text-center font-medium mb-4">Flujo de Caja Mensual</h3>
+                        <canvas id="chartCashFlow"></canvas>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2">
+                        <h3 class="text-center font-medium mb-4">Comparativo Anual (Ingresos vs Gastos)</h3>
+                        <canvas id="chartAnnual"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: GOALS -->
+            <section id="view-goals" class="view-section hidden fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold">Objetivos Financieros</h2>
+                    <button class="bg-primary hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all" onclick="app.showModal('modal-goal')">
+                        <i class="fa-solid fa-plus mr-2"></i> Nueva Meta
+                    </button>
+                </div>
+                <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Goals injected via JS -->
+                </div>
+            </section>
+
+            <!-- VIEW: REPORTS & INSIGHTS -->
+            <section id="view-reports" class="view-section hidden fade-in">
+                <h2 class="text-2xl font-bold mb-6">Asesor Financiero IA & Reportes</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="lg:col-span-2 bg-gradient-to-br from-blue-900 to-indigo-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                        <i class="fa-solid fa-robot absolute -right-4 -bottom-4 text-9xl opacity-10"></i>
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-lightbulb text-yellow-300"></i> Análisis Inteligente</h3>
+                        <ul id="smart-insights" class="space-y-3 relative z-10">
+                            <!-- Insights via JS -->
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-4">
+                        <h3 class="font-bold text-lg">Exportar Datos</h3>
+                        <button onclick="app.exportToPDF()" class="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 p-3 rounded-xl transition-colors font-medium">
+                            <i class="fa-solid fa-file-pdf"></i> Reporte PDF
+                        </button>
+                        <button onclick="app.exportToExcel()" class="w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 p-3 rounded-xl transition-colors font-medium">
+                            <i class="fa-solid fa-file-excel"></i> Movimientos (Excel/CSV)
+                        </button>
+                        <div class="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
+                        <button onclick="app.exportBackup()" class="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 p-3 rounded-xl transition-colors font-medium text-sm">
+                            <i class="fa-solid fa-download"></i> Backup JSON
+                        </button>
+                        <label class="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 p-3 rounded-xl transition-colors font-medium text-sm cursor-pointer">
+                            <i class="fa-solid fa-upload"></i> Importar JSON
+                            <input type="file" id="import-json" accept=".json" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+             <!-- VIEW: SETTINGS (Categories) -->
+             <section id="view-settings" class="view-section hidden fade-in">
+                <h2 class="text-2xl font-bold mb-6">Configuración</h2>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                    <h3 class="text-lg font-bold mb-4">Gestión de Categorías</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-medium text-success"><i class="fa-solid fa-arrow-trend-up"></i> Ingresos</h4>
+                                <button onclick="app.addCategory('ingreso')" class="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-plus"></i> Añadir</button>
+                            </div>
+                            <ul id="cat-income-list" class="space-y-2"></ul>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-medium text-danger"><i class="fa-solid fa-arrow-trend-down"></i> Gastos</h4>
+                                <button onclick="app.addCategory('gasto')" class="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-plus"></i> Añadir</button>
+                            </div>
+                            <ul id="cat-expense-list" class="space-y-2"></ul>
+                        </div>
+                    </div>
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <button onclick="app.clearAllData()" class="text-red-500 hover:text-red-700 text-sm font-medium"><i class="fa-solid fa-triangle-exclamation"></i> Borrar toda la base de datos</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: CALENDAR -->
+            <section id="view-calendar" class="view-section hidden fade-in">
+                <h2 class="text-2xl font-bold mb-6">Calendario de Pagos</h2>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                    <p class="text-gray-500 mb-6">Próximos compromisos organizados por fecha.</p>
+                    <div class="relative border-l-2 border-primary/30 ml-3" id="timeline-container">
+                        <!-- Timeline via JS -->
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODALS -->
+
+    <!-- Modal: Movement -->
+    <div id="modal-movement" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold" id="modal-mov-title">Registrar Movimiento</h3>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white" onclick="app.closeModal('modal-movement')"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto">
+                <form id="form-movement" class="space-y-4">
+                    <input type="hidden" id="mov-id">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Tipo</label>
+                            <select id="mov-type" required class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none" onchange="app.updateCategoriesDropdown()">
+                                <option value="gasto">Gasto</option>
+                                <option value="ingreso">Ingreso</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Fecha</label>
+                            <input type="date" id="mov-date" required class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Categoría</label>
+                        <select id="mov-category" required class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Valor</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                            <input type="number" id="mov-amount" required min="1" step="0.01" class="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Descripción</label>
+                        <input type="text" id="mov-description" required placeholder="Ej. Compra supermercado" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Medio de Pago</label>
+                            <select id="mov-method" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Tarjeta Débito">Tarjeta Débito</option>
+                                <option value="Tarjeta Crédito">Tarjeta Crédito</option>
+                                <option value="Transferencia">Transferencia</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Subcategoría (Opcional)</label>
+                            <input type="text" id="mov-subcat" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Observaciones</label>
+                        <textarea id="mov-notes" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-primary outline-none"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">Guardar Movimiento</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Debt -->
+    <div id="modal-debt" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold">Registrar Deuda</h3>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white" onclick="app.closeModal('modal-debt')"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto">
+                <form id="form-debt" class="space-y-4">
+                    <input type="hidden" id="debt-id">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Banco / Acreedor</label>
+                        <input type="text" id="debt-bank" required class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Capital Total</label>
+                            <input type="number" id="debt-principal" required min="1" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Valor Cuota</label>
+                            <input type="number" id="debt-installment" required min="1" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Interés Anual (%)</label>
+                            <input type="number" id="debt-interest" step="0.1" value="0" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Día de pago</label>
+                            <input type="number" id="debt-day" required min="1" max="31" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Cuotas Restantes (Actual)</label>
+                        <input type="number" id="debt-remaining" required min="1" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold">Guardar Deuda</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Budget -->
+    <div id="modal-budget" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold">Asignar Presupuesto</h3>
+                <button class="text-gray-500 hover:text-gray-800" onclick="app.closeModal('modal-budget')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5">
+                <form id="form-budget" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Categoría (Gasto)</label>
+                        <select id="budget-category" required class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Presupuesto Máximo</label>
+                        <input type="number" id="budget-amount" required min="1" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold">Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Goal -->
+    <div id="modal-goal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-xl font-bold">Objetivo Financiero</h3>
+                <button class="text-gray-500 hover:text-gray-800" onclick="app.closeModal('modal-goal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5">
+                <form id="form-goal" class="space-y-4">
+                    <input type="hidden" id="goal-id">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nombre (Ej. Comprar Auto)</label>
+                        <input type="text" id="goal-name" required class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Meta a alcanzar ($)</label>
+                        <input type="number" id="goal-target" required min="1" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Ahorro Actual ($)</label>
+                        <input type="number" id="goal-current" required min="0" value="0" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold">Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script principal de JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
